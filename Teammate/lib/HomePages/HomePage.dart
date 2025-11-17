@@ -4,7 +4,9 @@ import 'TeamsWidget.dart';
 import 'FindWidget.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final Map<String, dynamic> user;
+
+  const HomePage({super.key, required this.user});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -12,11 +14,26 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
-  static const List<Widget> _widgetOptions = <Widget>[
-    const FindWidget(),
-    const TeamsWidget(),
-    const ProfileWidget(),
-  ];
+  late Map<String, dynamic> _user;
+  late final List<Widget> _widgetOptions;
+
+  @override
+  void initState() {
+    super.initState();
+    _user = widget.user;
+    _widgetOptions = <Widget>[
+      const FindWidget(),
+      const TeamsWidget(),
+      ProfileWidget(user: _user, onProfileUpdated: _updateUser),
+    ];
+  }
+
+  void _updateUser(Map<String, dynamic> newUser) {
+    setState(() {
+      _user = newUser;
+      _widgetOptions[2] = ProfileWidget(user: _user, onProfileUpdated: _updateUser);
+    });
+  }
 
   void _onItemTapped(int index) {
     setState(() {
