@@ -1,10 +1,6 @@
-import 'dart:convert';
-import 'dart:io';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:teammate/LoginPage.dart';
 
 class ProfileWidget extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -60,21 +56,9 @@ class _ProfileWidgetState extends State<ProfileWidget> {
     super.dispose();
   }
 
-  Future<File> get _localFile async {
-    final directory = await getApplicationDocumentsDirectory();
-    return File('${directory.path}/user_db.json');
-  }
-
   void _saveProfile() async {
     if (_formKey.currentState!.validate()) {
-      final dbFile = await _localFile;
-      List<dynamic> users = [];
-      if (await dbFile.exists()) {
-        users = jsonDecode(await dbFile.readAsString());
-      }
-
-      final updatedUser = {
-        ...widget.user,
+      final updatedData = {
         'name': _nameController.text,
         'introduction': _introController.text,
         'github': _githubController.text,
@@ -82,38 +66,33 @@ class _ProfileWidgetState extends State<ProfileWidget> {
         // TODO: Save other fields like ability, chat settings etc.
       };
 
-      final userIndex = users.indexWhere((user) => user['email'] == widget.user['email']);
-      if (userIndex != -1) {
-        users[userIndex] = updatedUser;
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.user['uid'])
+            .update(updatedData);
+
+        final updatedUser = {...widget.user, ...updatedData};
+        widget.onProfileUpdated(updatedUser);
+
+        setState(() {
+          _isEditing = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('프로필이 저장되었습니다.')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('프로필 저장에 실패했습니다: $e')),
+        );
       }
-
-      await dbFile.writeAsString(jsonEncode(users));
-
-      final prefs = await SharedPreferences.getInstance();
-      if (prefs.getBool('isLoggedIn') ?? false) {
-        await prefs.setString('user', jsonEncode(updatedUser));
-      }
-
-      widget.onProfileUpdated(updatedUser);
-
-      setState(() {
-        _isEditing = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('프로필이 저장되었습니다.')),
-      );
     }
   }
 
   void logoutClicked() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginPage()),
-      (route) => false,
-    );
+    await FirebaseAuth.instance.signOut();
+    // The stream in main.dart will handle navigation.
   }
 
   @override
@@ -174,6 +153,8 @@ class _ProfileWidgetState extends State<ProfileWidget> {
               Text('Birthdate: ${widget.user['birthdate']}'),
               const SizedBox(height: 16),
               Text('Gender: ${widget.user['gender']}'),
+              const SizedBox(height: 24),
+              _buildDropdown('나의 포지션', _selectedPosition, _positions, _isEditing ? (val) => setState(() => _selectedPosition = val) : null),
               const SizedBox(height: 16),
               _buildDropdown('나의 능력치', _selectedAbility, _abilities, _isEditing ? (val) => setState(() => _selectedAbility = val) : null),
               const SizedBox(height: 16),
