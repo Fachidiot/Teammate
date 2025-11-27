@@ -1,12 +1,17 @@
+
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfileWidget extends StatefulWidget {
   final Map<String, dynamic> user;
   final Function(Map<String, dynamic>) onProfileUpdated;
 
-  const ProfileWidget({super.key, required this.user, required this.onProfileUpdated});
+  const ProfileWidget(
+      {super.key, required this.user, required this.onProfileUpdated});
 
   @override
   State<ProfileWidget> createState() => _ProfileWidgetState();
@@ -14,6 +19,7 @@ class ProfileWidget extends StatefulWidget {
 
 class _ProfileWidgetState extends State<ProfileWidget> {
   bool _isEditing = false;
+  bool _isSaving = false;
 
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
@@ -22,10 +28,10 @@ class _ProfileWidgetState extends State<ProfileWidget> {
 
   String? _selectedPosition;
   final List<String> _positions = ['개발자', '디자이너', '기획자'];
-  String? _selectedAbility;
-  final List<String> _abilities = ['상', '중', '하'];
   bool _receiveChats = true;
   bool _showProfile = true;
+
+  File? _imageFile;
 
   @override
   void initState() {
@@ -46,6 +52,9 @@ class _ProfileWidgetState extends State<ProfileWidget> {
     _introController = TextEditingController(text: widget.user['introduction']);
     _githubController = TextEditingController(text: widget.user['github']);
     _selectedPosition = widget.user['job'];
+    _receiveChats = widget.user['receiveChats'] ?? true;
+    _showProfile = widget.user['showProfile'] ?? true;
+    _imageFile = null;
   }
 
   @override
@@ -56,36 +65,89 @@ class _ProfileWidgetState extends State<ProfileWidget> {
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70, maxWidth: 800);
+
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+    }
+  }
+
   void _saveProfile() async {
-    if (_formKey.currentState!.validate()) {
-      final updatedData = {
+    if (!_formKey.currentState!.validate() || _isSaving) {
+      return;
+    }
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final Map<String, dynamic> updatedData = {
         'name': _nameController.text,
         'introduction': _introController.text,
         'github': _githubController.text,
         'job': _selectedPosition,
-        // TODO: Save other fields like ability, chat settings etc.
+        'receiveChats': _receiveChats,
+        'showProfile': _showProfile,
       };
 
-      try {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(widget.user['uid'])
-            .update(updatedData);
+      if (_imageFile != null) {
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('profile_images')
+            .child(widget.user['uid']);
+        final uploadTask = storageRef.putFile(_imageFile!);
+        final snapshot = await uploadTask;
+        final photoURL = await snapshot.ref.getDownloadURL();
+        updatedData['photoURL'] = photoURL;
+      }
 
-        final updatedUser = {...widget.user, ...updatedData};
-        widget.onProfileUpdated(updatedUser);
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.user['uid'])
+          .update(updatedData);
 
-        setState(() {
-          _isEditing = false;
-        });
+      final updatedUser = {...widget.user, ...updatedData};
+      widget.onProfileUpdated(updatedUser);
 
+      setState(() {
+        _isEditing = false;
+        _imageFile = null;
+      });
+
+      if(mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('프로필이 저장되었습니다.')),
         );
-      } catch (e) {
+      }
+    } on FirebaseException catch (e) {
+      String message = '프로필 저장에 실패했습니다.';
+      if (e.code == 'unauthorized') {
+        message = '오류: Storage 접근 권한이 없습니다. Firebase 콘솔에서 Storage의 규칙을 확인해주세요.';
+      } else if (e.code == 'project-not-found' || e.code == 'bucket-not-found') {
+        message = '오류: Firebase 프로젝트 또는 Storage 버킷을 찾을 수 없습니다. Firebase 설정을 확인해주세요.';
+      } else {
+        message = 'Firebase 오류가 발생했습니다: ${e.message}';
+      }
+      if(mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('프로필 저장에 실패했습니다: $e')),
+          SnackBar(content: Text(message), duration: const Duration(seconds: 5)),
         );
+      }
+    } catch (e) {
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('알 수 없는 오류가 발생했습니다: $e')),
+        );
+      }
+    } finally {
+      if(mounted) {
+        setState(() {
+          _isSaving = false;
+        });
       }
     }
   }
@@ -103,7 +165,7 @@ class _ProfileWidgetState extends State<ProfileWidget> {
         actions: [
           if (_isEditing)
             IconButton(
-              icon: const Icon(Icons.save),
+              icon: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.0,)) : const Icon(Icons.save),
               onPressed: _saveProfile,
             )
           else
@@ -121,79 +183,160 @@ class _ProfileWidgetState extends State<ProfileWidget> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: LayoutBuilder(builder: (context, constraints) {
+            bool isWideScreen = constraints.maxWidth > 600;
+            if (isWideScreen) {
+              return _buildWideLayout();
+            } else {
+              return _buildNarrowLayout();
+            }
+          }),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNarrowLayout() {
+    return Column(
+      children: [
+        _buildProfileHeader(avatarRadius: 40),
+        const SizedBox(height: 24),
+        _buildStaticInfo(),
+        const SizedBox(height: 24),
+        _buildEditableContent(),
+      ],
+    );
+  }
+
+  Widget _buildWideLayout() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 1,
           child: Column(
             children: [
-              Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 30,
-                    child: Icon(Icons.image_outlined, size: 30),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _isEditing
-                        ? TextFormField(
-                            controller: _nameController,
-                            decoration: const InputDecoration(labelText: '이름'),
-                          )
-                        : Text(
-                            widget.user['name'],
-                            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                          ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text('Email: ${widget.user['email']}'),
-              const SizedBox(height: 16),
-              Text('Birthdate: ${widget.user['birthdate']}'),
-              const SizedBox(height: 16),
-              Text('Gender: ${widget.user['gender']}'),
+              _buildProfileHeader(avatarRadius: 50),
               const SizedBox(height: 24),
-              _buildDropdown('나의 포지션', _selectedPosition, _positions, _isEditing ? (val) => setState(() => _selectedPosition = val) : null),
-              const SizedBox(height: 16),
-              _buildDropdown('나의 능력치', _selectedAbility, _abilities, _isEditing ? (val) => setState(() => _selectedAbility = val) : null),
-              const SizedBox(height: 16),
-              if (_isEditing) ...[
-                  TextFormField(
-                  controller: _introController,
-                  decoration: const InputDecoration(labelText: '내 프로필 문구', border: OutlineInputBorder()),
-                   maxLines: 3,
-                ),
-                const SizedBox(height: 16),
-                if (widget.user['job'] == '개발자')
-                  TextFormField(
-                    controller: _githubController,
-                    decoration: const InputDecoration(labelText: '나의 외부 링크', border: OutlineInputBorder()),
-                  ),
-              ] else ...[
-                 _buildDisplayField('내 프로필 문구', widget.user['introduction'] ?? '-'),
-                 const SizedBox(height: 16),
-                 _buildDisplayField('나의 외부 링크', widget.user['github'] ?? '-'),
-              ],
-              const SizedBox(height: 32),
-              _buildSwitchTile('채팅을 받습니다', _receiveChats, _isEditing ? (val) => setState(() => _receiveChats = val) : null),
-              const SizedBox(height: 8),
-              _buildSwitchTile('내 프로필을 노출합니다', _showProfile, _isEditing ? (val) => setState(() => _showProfile = val) : null),
+              _buildStaticInfo(),
             ],
           ),
         ),
-      ),
+        const SizedBox(width: 24),
+        Expanded(
+          flex: 2,
+          child: _buildEditableContent(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileHeader({required double avatarRadius}) {
+    return Row(
+      children: [
+        GestureDetector(
+          onTap: _isEditing ? _pickImage : null,
+          child: CircleAvatar(
+            radius: avatarRadius,
+            backgroundImage: _imageFile != null
+                ? FileImage(_imageFile!) as ImageProvider
+                : (widget.user['photoURL'] != null &&
+                        widget.user['photoURL'].isNotEmpty)
+                    ? NetworkImage(widget.user['photoURL'])
+                    : null,
+            child: (_imageFile == null &&
+                    (widget.user['photoURL'] == null ||
+                        widget.user['photoURL'].isEmpty))
+                ? Icon(Icons.image_outlined,
+                    size: avatarRadius, color: _isEditing ? Colors.white : Colors.grey)
+                : null,
+            backgroundColor: Colors.grey.shade300,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _isEditing
+              ? TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: '이름'),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                )
+              : Text(
+                  widget.user['name'],
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStaticInfo() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildDisplayField('Email', widget.user['email'] ?? '-'),
+        const SizedBox(height: 16),
+        _buildDisplayField('Birthdate', widget.user['birthdate'] ?? '-'),
+        const SizedBox(height: 16),
+        _buildDisplayField('Gender', widget.user['gender'] ?? '-'),
+      ],
+    );
+  }
+
+  Widget _buildEditableContent() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildDropdown(
+            '나의 포지션',
+            _selectedPosition,
+            _positions,
+            _isEditing
+                ? (val) => setState(() => _selectedPosition = val)
+                : null),
+        const SizedBox(height: 16),
+        if (_isEditing) ...[
+          TextFormField(
+            controller: _introController,
+            decoration: const InputDecoration(
+                labelText: '내 프로필 문구', border: OutlineInputBorder()),
+            maxLines: 3,
+          ),
+          const SizedBox(height: 16),
+          if (widget.user['job'] == '개발자')
+            TextFormField(
+              controller: _githubController,
+              decoration: const InputDecoration(
+                  labelText: '나의 외부 링크', border: OutlineInputBorder()),
+            ),
+        ] else ...[
+          _buildDisplayField(
+              '내 프로필 문구', widget.user['introduction'] ?? '-'),
+          const SizedBox(height: 16),
+          _buildDisplayField('나의 외부 링크', widget.user['github'] ?? '-'),
+        ],
+        const SizedBox(height: 32),
+        _buildSwitchTile('채팅을 받습니다', _receiveChats,
+            _isEditing ? (val) => setState(() => _receiveChats = val) : null),
+        const SizedBox(height: 8),
+        _buildSwitchTile('내 프로필을 노출합니다', _showProfile,
+            _isEditing ? (val) => setState(() => _showProfile = val) : null),
+      ],
     );
   }
 
   Widget _buildDisplayField(String label, String value) {
     return Container(
       width: double.infinity,
-       padding: const EdgeInsets.all(16),
-       decoration: BoxDecoration(
-         border: Border.all(color: Colors.grey.shade300),
-         borderRadius: BorderRadius.circular(12),
-       ),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -205,7 +348,8 @@ class _ProfileWidgetState extends State<ProfileWidget> {
     );
   }
 
-  Widget _buildDropdown(String label, String? value, List<String> items, ValueChanged<String?>? onChanged) {
+  Widget _buildDropdown(String label, String? value, List<String> items,
+      ValueChanged<String?>? onChanged) {
     return DropdownButtonFormField<String>(
       value: value,
       items: items.map((String item) {
@@ -224,7 +368,8 @@ class _ProfileWidgetState extends State<ProfileWidget> {
     );
   }
 
-  Widget _buildSwitchTile(String title, bool value, ValueChanged<bool>? onChanged) {
+  Widget _buildSwitchTile(
+      String title, bool value, ValueChanged<bool>? onChanged) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -232,6 +377,7 @@ class _ProfileWidgetState extends State<ProfileWidget> {
         Switch(
           value: value,
           onChanged: onChanged,
+          activeColor: Theme.of(context).primaryColor,
         ),
       ],
     );

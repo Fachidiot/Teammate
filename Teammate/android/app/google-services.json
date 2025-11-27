@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:45326367026:android:e3f378172495ba720abf2b",
+        "mobilesdk_app_id": "1:45326367026:android:33b3f6dcf121698c0abf2b",
         "android_client_info": {
-          "package_name": "com.teammate.teammate"
+          "package_name": "com.example.teammate"
         }
       },
       "oauth_client": [],

@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:teammate/HomePages/HomePage.dart';
 
 class RegisterDetailPage extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -47,16 +46,22 @@ class _RegisterDetailPageState extends State<RegisterDetailPage> {
             .doc(credential.user!.uid)
             .set(newUser);
 
-        // The stream in main.dart will handle navigation
+        if (mounted) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
       }
     } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? '회원가입에 실패했습니다.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message ?? '회원가입에 실패했습니다.')),
+        );
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -66,73 +71,78 @@ class _RegisterDetailPageState extends State<RegisterDetailPage> {
       appBar: AppBar(
         title: const Text('추가 정보 입력'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("간단한 자기소개를 적어주세요."),
-              const SizedBox(height: 8.0),
-              TextFormField(
-                controller: _introController,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: '자기소개',
-                ),
-                maxLines: 5,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '자기소개를 입력해주세요.';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-              if (widget.userData['job'] == '개발자') ...[
-                const Text("깃허브 링크를 적어놓을수 있는 textinput"),
-                const SizedBox(height: 8.0),
-                TextFormField(
-                  controller: _githubController,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'https://github.com/your-username',
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("간단한 자기소개를 적어주세요."),
+                  const SizedBox(height: 8.0),
+                  TextFormField(
+                    controller: _introController,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: '자기소개',
+                    ),
+                    maxLines: 5,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return '자기소개를 입력해주세요.';
+                      }
+                      return null;
+                    },
                   ),
-                ),
-              ] else if (widget.userData['job'] == '디자이너') ...[
-                const Text("작업물을 올릴수 있도록 이미지를 올리는 버튼"),
-                const SizedBox(height: 8.0),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    // TODO: Implement image picker
-                  },
-                  icon: const Icon(Icons.upload_file),
-                  label: const Text('이미지 업로드'),
-                ),
-              ] else if (widget.userData['job'] == '기획자') ...[
-                const Text(".pdf파일등의 기획안 파일을 올릴수 있는 버튼"),
-                const SizedBox(height: 8.0),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    // TODO: Implement file picker for pdf
-                  },
-                  icon: const Icon(Icons.upload_file),
-                  label: const Text('PDF 업로드'),
-                ),
-              ],
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _registerClicked,
-                  child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Text('회원가입'),
-                ),
+                  const SizedBox(height: 20),
+                  if (widget.userData['job'] == '개발자') ...[
+                    const Text("깃허브 링크를 적어놓을수 있는 textinput"),
+                    const SizedBox(height: 8.0),
+                    TextFormField(
+                      controller: _githubController,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        hintText: 'https://github.com/your-username',
+                      ),
+                    ),
+                  ] else if (widget.userData['job'] == '디자이너') ...[
+                    const Text("작업물을 올릴수 있도록 이미지를 올리는 버튼"),
+                    const SizedBox(height: 8.0),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        // TODO: Implement image picker
+                      },
+                      icon: const Icon(Icons.upload_file),
+                      label: const Text('이미지 업로드'),
+                    ),
+                  ] else if (widget.userData['job'] == '기획자') ...[
+                    const Text(".pdf파일등의 기획안 파일을 올릴수 있는 버튼"),
+                    const SizedBox(height: 8.0),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        // TODO: Implement file picker for pdf
+                      },
+                      icon: const Icon(Icons.upload_file),
+                      label: const Text('PDF 업로드'),
+                    ),
+                  ],
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _registerClicked,
+                      child: _isLoading
+                          ? const CircularProgressIndicator()
+                          : const Text('회원가입'),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
