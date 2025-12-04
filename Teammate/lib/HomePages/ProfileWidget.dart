@@ -1,8 +1,9 @@
-
 import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -31,7 +32,7 @@ class _ProfileWidgetState extends State<ProfileWidget> {
   bool _receiveChats = true;
   bool _showProfile = true;
 
-  File? _imageFile;
+  XFile? _pickedImage;
 
   @override
   void initState() {
@@ -54,7 +55,7 @@ class _ProfileWidgetState extends State<ProfileWidget> {
     _selectedPosition = widget.user['job'];
     _receiveChats = widget.user['receiveChats'] ?? true;
     _showProfile = widget.user['showProfile'] ?? true;
-    _imageFile = null;
+    _pickedImage = null;
   }
 
   @override
@@ -67,11 +68,12 @@ class _ProfileWidgetState extends State<ProfileWidget> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70, maxWidth: 800);
+    final pickedFile = await picker.pickImage(
+        source: ImageSource.gallery, imageQuality: 70, maxWidth: 800);
 
     if (pickedFile != null) {
       setState(() {
-        _imageFile = File(pickedFile.path);
+        _pickedImage = pickedFile;
       });
     }
   }
@@ -94,12 +96,19 @@ class _ProfileWidgetState extends State<ProfileWidget> {
         'showProfile': _showProfile,
       };
 
-      if (_imageFile != null) {
+      if (_pickedImage != null) {
         final storageRef = FirebaseStorage.instance
             .ref()
             .child('profile_images')
             .child(widget.user['uid']);
-        final uploadTask = storageRef.putFile(_imageFile!);
+            
+        UploadTask uploadTask;
+        if (kIsWeb) {
+          uploadTask = storageRef.putData(await _pickedImage!.readAsBytes());
+        } else {
+          uploadTask = storageRef.putFile(File(_pickedImage!.path));
+        }
+
         final snapshot = await uploadTask;
         final photoURL = await snapshot.ref.getDownloadURL();
         updatedData['photoURL'] = photoURL;
@@ -115,10 +124,10 @@ class _ProfileWidgetState extends State<ProfileWidget> {
 
       setState(() {
         _isEditing = false;
-        _imageFile = null;
+        _pickedImage = null;
       });
 
-      if(mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('프로필이 저장되었습니다.')),
         );
@@ -126,25 +135,28 @@ class _ProfileWidgetState extends State<ProfileWidget> {
     } on FirebaseException catch (e) {
       String message = '프로필 저장에 실패했습니다.';
       if (e.code == 'unauthorized') {
-        message = '오류: Storage 접근 권한이 없습니다. Firebase 콘솔에서 Storage의 규칙을 확인해주세요.';
-      } else if (e.code == 'project-not-found' || e.code == 'bucket-not-found') {
-        message = '오류: Firebase 프로젝트 또는 Storage 버킷을 찾을 수 없습니다. Firebase 설정을 확인해주세요.';
+        message =
+            '오류: Storage 접근 권한이 없습니다. Firebase 콘솔에서 Storage의 규칙을 확인해주세요.';
+      } else if (e.code == 'project-not-found' ||
+          e.code == 'bucket-not-found') {
+        message =
+            '오류: Firebase 프로젝트 또는 Storage 버킷을 찾을 수 없습니다. Firebase 설정을 확인해주세요.';
       } else {
         message = 'Firebase 오류가 발생했습니다: ${e.message}';
       }
-      if(mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message), duration: const Duration(seconds: 5)),
         );
       }
     } catch (e) {
-      if(mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('알 수 없는 오류가 발생했습니다: $e')),
         );
       }
     } finally {
-      if(mounted) {
+      if (mounted) {
         setState(() {
           _isSaving = false;
         });
@@ -165,7 +177,13 @@ class _ProfileWidgetState extends State<ProfileWidget> {
         actions: [
           if (_isEditing)
             IconButton(
-              icon: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.0,)) : const Icon(Icons.save),
+              icon: _isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2.0))
+                  : const Icon(Icons.save),
               onPressed: _saveProfile,
             )
           else
@@ -235,6 +253,17 @@ class _ProfileWidgetState extends State<ProfileWidget> {
     );
   }
 
+  ImageProvider? _getAvatarImage() {
+    if (_pickedImage != null) {
+      // For web, the path is a URL. For mobile, it's a file path.
+      return kIsWeb ? NetworkImage(_pickedImage!.path) : FileImage(File(_pickedImage!.path));
+    }
+    if (widget.user['photoURL'] != null && widget.user['photoURL'].isNotEmpty) {
+      return NetworkImage(widget.user['photoURL']);
+    }
+    return null;
+  }
+
   Widget _buildProfileHeader({required double avatarRadius}) {
     return Row(
       children: [
@@ -242,15 +271,8 @@ class _ProfileWidgetState extends State<ProfileWidget> {
           onTap: _isEditing ? _pickImage : null,
           child: CircleAvatar(
             radius: avatarRadius,
-            backgroundImage: _imageFile != null
-                ? FileImage(_imageFile!) as ImageProvider
-                : (widget.user['photoURL'] != null &&
-                        widget.user['photoURL'].isNotEmpty)
-                    ? NetworkImage(widget.user['photoURL'])
-                    : null,
-            child: (_imageFile == null &&
-                    (widget.user['photoURL'] == null ||
-                        widget.user['photoURL'].isEmpty))
+            backgroundImage: _getAvatarImage(),
+            child: _getAvatarImage() == null
                 ? Icon(Icons.image_outlined,
                     size: avatarRadius, color: _isEditing ? Colors.white : Colors.grey)
                 : null,
@@ -263,11 +285,17 @@ class _ProfileWidgetState extends State<ProfileWidget> {
               ? TextFormField(
                   controller: _nameController,
                   decoration: const InputDecoration(labelText: '이름'),
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 )
               : Text(
                   widget.user['name'],
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
         ),
       ],
@@ -291,13 +319,8 @@ class _ProfileWidgetState extends State<ProfileWidget> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _buildDropdown(
-            '나의 포지션',
-            _selectedPosition,
-            _positions,
-            _isEditing
-                ? (val) => setState(() => _selectedPosition = val)
-                : null),
+        _buildDropdown('나의 포지션', _selectedPosition, _positions,
+            _isEditing ? (val) => setState(() => _selectedPosition = val) : null),
         const SizedBox(height: 16),
         if (_isEditing) ...[
           TextFormField(
