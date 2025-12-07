@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 class RegisterDetailPage extends StatefulWidget {
   final Map<String, dynamic> userData;
-
   const RegisterDetailPage({super.key, required this.userData});
 
   @override
@@ -18,12 +17,8 @@ class _RegisterDetailPageState extends State<RegisterDetailPage> {
   bool _isLoading = false;
 
   void _registerClicked() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-    setState(() {
-      _isLoading = true;
-    });
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
 
     try {
       final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
@@ -38,106 +33,61 @@ class _RegisterDetailPageState extends State<RegisterDetailPage> {
           'github': _githubController.text,
           'introduction': _introController.text,
         };
-        // Remove password before saving to firestore
         newUser.remove('password');
 
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(credential.user!.uid)
-            .set(newUser);
-
-        if (mounted) {
-          Navigator.of(context).popUntil((route) => route.isFirst);
-        }
+        await FirebaseFirestore.instance.collection('users').doc(credential.user!.uid).set(newUser);
+        if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } on FirebaseAuthException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message ?? '회원가입에 실패했습니다.')),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? '가입 실패')));
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('추가 정보 입력'),
-      ),
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(title: const Text('추가 정보', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)), backgroundColor: Colors.white, elevation: 0, iconTheme: const IconThemeData(color: Colors.black)),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 500),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(24.0),
             child: Form(
               key: _formKey,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text("간단한 자기소개를 적어주세요."),
-                  const SizedBox(height: 8.0),
+                  const Text("마지막 단계입니다!", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 20),
+
                   TextFormField(
                     controller: _introController,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: '자기소개',
-                    ),
+                    decoration: _inputDecoration("자기소개", Icons.description_outlined),
                     maxLines: 5,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return '자기소개를 입력해주세요.';
-                      }
-                      return null;
-                    },
+                    validator: (v) => v!.isEmpty ? '자기소개를 입력해주세요' : null,
                   ),
-                  const SizedBox(height: 20),
-                  if (widget.userData['job'] == '개발자') ...[
-                    const Text("깃허브 링크를 적어놓을수 있는 textinput"),
-                    const SizedBox(height: 8.0),
-                    TextFormField(
-                      controller: _githubController,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: 'https://github.com/your-username',
-                      ),
+                  const SizedBox(height: 16),
+
+                  if (widget.userData['job'] == '개발자')
+                    TextFormField(controller: _githubController, decoration: _inputDecoration("Github 주소", Icons.link)),
+
+                  // 디자인/기획자용 버튼 (UI만 존재)
+                  if (widget.userData['job'] != '개발자')
+                    SizedBox(
+                      height: 50,
+                      child: OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.upload_file), label: const Text("포트폴리오 업로드 (선택)")),
                     ),
-                  ] else if (widget.userData['job'] == '디자이너') ...[
-                    const Text("작업물을 올릴수 있도록 이미지를 올리는 버튼"),
-                    const SizedBox(height: 8.0),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        // TODO: Implement image picker
-                      },
-                      icon: const Icon(Icons.upload_file),
-                      label: const Text('이미지 업로드'),
-                    ),
-                  ] else if (widget.userData['job'] == '기획자') ...[
-                    const Text(".pdf파일등의 기획안 파일을 올릴수 있는 버튼"),
-                    const SizedBox(height: 8.0),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        // TODO: Implement file picker for pdf
-                      },
-                      icon: const Icon(Icons.upload_file),
-                      label: const Text('PDF 업로드'),
-                    ),
-                  ],
+
                   const SizedBox(height: 32),
                   SizedBox(
-                    width: double.infinity,
-                    height: 50,
+                    height: 52,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _registerClicked,
-                      child: _isLoading
-                          ? const CircularProgressIndicator()
-                          : const Text('회원가입'),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('가입 완료', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                     ),
                   ),
                 ],
@@ -146,6 +96,18 @@ class _RegisterDetailPageState extends State<RegisterDetailPage> {
           ),
         ),
       ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: Colors.grey[400]),
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3B82F6))),
     );
   }
 }

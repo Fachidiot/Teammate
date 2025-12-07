@@ -32,13 +32,7 @@ class _RegisterPageState extends State<RegisterPage> {
         'gender': _selectedGender,
         'job': _selectedPosition,
       };
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => RegisterDetailPage(userData: userData),
-        ),
-      );
+      Navigator.push(context, MaterialPageRoute(builder: (context) => RegisterDetailPage(userData: userData)));
     }
   }
 
@@ -48,6 +42,14 @@ class _RegisterPageState extends State<RegisterPage> {
       initialDate: DateTime.now(),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: const ColorScheme.light(primary: Colors.black), // 달력 색상 블랙
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       _birthdateController.text = "${picked.year}-${picked.month}-${picked.day}";
@@ -57,134 +59,85 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('회원가입'),
+        title: const Text('JOIN US', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, letterSpacing: 2.0, fontSize: 16)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 500),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
             child: Form(
               key: _formKey,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(
-                        labelText: '이메일', border: OutlineInputBorder()),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return '이메일을 입력해주세요.';
-                      }
-                      if (!RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").hasMatch(value)) {
-                        return '유효한 이메일 주소를 입력해주세요.';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16.0),
+                  const Text("기본 정보 입력", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w300)),
+                  const SizedBox(height: 40),
+
+                  _buildMinimalInput(_emailController, "이메일", Icons.email_outlined),
+                  const SizedBox(height: 24),
+
                   TextFormField(
                     controller: _passwordController,
                     obscureText: !_isPasswordVisible,
                     decoration: InputDecoration(
-                      labelText: '비밀번호',
-                      border: const OutlineInputBorder(),
+                      labelText: "비밀번호",
+                      labelStyle: const TextStyle(color: Colors.grey, fontSize: 12),
+                      prefixIcon: const Icon(Icons.lock_outline, color: Colors.black, size: 20),
                       suffixIcon: IconButton(
-                        icon: Icon(_isPasswordVisible
-                            ? Icons.visibility
-                            : Icons.visibility_off),
-                        onPressed: () {
-                          setState(() {
-                            _isPasswordVisible = !_isPasswordVisible;
-                          });
-                        },
+                        icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off, color: Colors.grey, size: 20),
+                        onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
                       ),
+                      enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                      focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.black, width: 2)),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return '비밀번호를 입력해주세요.';
-                      }
-                      return null;
-                    },
+                    validator: (v) => v!.isEmpty ? '비밀번호를 입력해주세요' : null,
                   ),
-                  const SizedBox(height: 16.0),
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                        labelText: '이름', border: OutlineInputBorder()),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return '이름을 입력해주세요.';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16.0),
+                  const SizedBox(height: 24),
+
+                  _buildMinimalInput(_nameController, "이름", Icons.person_outline),
+                  const SizedBox(height: 24),
+
                   TextFormField(
                     controller: _birthdateController,
-                    decoration: const InputDecoration(
-                      labelText: '생년월일',
-                      border: OutlineInputBorder(),
-                      suffixIcon: Icon(Icons.calendar_today),
-                    ),
                     readOnly: true,
                     onTap: () => _selectDate(context),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return '생년월일을 선택해주세요.';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16.0),
-                  DropdownButtonFormField<String>(
-                    value: _selectedGender,
-                    items: _genders.map((String gender) {
-                      return DropdownMenuItem<String>(
-                        value: gender,
-                        child: Text(gender),
-                      );
-                    }).toList(),
-                    onChanged: (newValue) {
-                      setState(() {
-                        _selectedGender = newValue;
-                      });
-                    },
                     decoration: const InputDecoration(
-                      labelText: '성별',
-                      border: OutlineInputBorder(),
+                      labelText: "생년월일",
+                      labelStyle: TextStyle(color: Colors.grey, fontSize: 12),
+                      prefixIcon: Icon(Icons.calendar_today_outlined, color: Colors.black, size: 20),
+                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                      focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.black, width: 2)),
                     ),
-                    validator: (value) => value == null ? '성별을 선택해주세요' : null,
+                    validator: (v) => v!.isEmpty ? '생년월일을 선택해주세요' : null,
                   ),
-                  const SizedBox(height: 16.0),
-                  DropdownButtonFormField<String>(
-                    value: _selectedPosition,
-                    items: _positions.map((String position) {
-                      return DropdownMenuItem<String>(
-                        value: position,
-                        child: Text(position),
-                      );
-                    }).toList(),
-                    onChanged: (newValue) {
-                      setState(() {
-                        _selectedPosition = newValue;
-                      });
-                    },
-                    decoration: const InputDecoration(
-                      labelText: '포지션',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) => value == null ? '포지션을 선택해주세요' : null,
+                  const SizedBox(height: 24),
+
+                  Row(
+                    children: [
+                      Expanded(child: _buildDropdown(_selectedGender, _genders, "성별", (v) => setState(() => _selectedGender = v))),
+                      const SizedBox(width: 20),
+                      Expanded(child: _buildDropdown(_selectedPosition, _positions, "직군", (v) => setState(() => _selectedPosition = v))),
+                    ],
                   ),
-                  const SizedBox(height: 32.0),
+
+                  const SizedBox(height: 50),
                   SizedBox(
-                    width: double.infinity,
-                    height: 50,
+                    height: 56,
                     child: ElevatedButton(
                       onPressed: _nextClicked,
-                      child: const Text('다음'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                      ),
+                      child: const Text('다음 단계', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 2.0)),
                     ),
                   ),
                 ],
@@ -193,6 +146,35 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildMinimalInput(TextEditingController c, String label, IconData icon) {
+    return TextFormField(
+      controller: c,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.grey, fontSize: 12),
+        prefixIcon: Icon(icon, color: Colors.black, size: 20),
+        enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+        focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.black, width: 2)),
+      ),
+      validator: (v) => v!.isEmpty ? '$label을 입력해주세요' : null,
+    );
+  }
+
+  Widget _buildDropdown(String? val, List<String> items, String hint, Function(String?) changed) {
+    return DropdownButtonFormField<String>(
+      value: val,
+      items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
+      onChanged: changed,
+      decoration: InputDecoration(
+        labelText: hint,
+        labelStyle: const TextStyle(color: Colors.grey, fontSize: 12),
+        enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+        focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.black, width: 2)),
+      ),
+      validator: (v) => v == null ? '선택' : null,
     );
   }
 }

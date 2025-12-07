@@ -11,51 +11,97 @@ class InitPage extends StatefulWidget {
 
 class _InitPageState extends State<InitPage> {
   void loginClicked() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginPage()),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginPage()));
   }
 
   void registerClicked() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const RegisterPage()),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterPage()));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          children: [
-            Container(
-              margin: EdgeInsets.only(top: 200),
-              width: 128,
-              child: Image(image: AssetImage("assets/images/g-logo.png")),
-            ),
-            Container(
-              width: double.infinity,
-              margin: EdgeInsets.only(top: 24),
-              height: 50,
-              child: ElevatedButton(
-                onPressed: loginClicked,
-                child: Text("로그인"),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 60.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Spacer(),
+              // === 로고 및 타이틀 영역 ===
+              Center(
+                child: Container(
+                  width: 100, height: 100,
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: Colors.black, // 갤러리 느낌의 블랙 박스
+                    shape: BoxShape.rectangle,
+                  ),
+                  child: Image.asset(
+                    "assets/images/g-logo.png",
+                    color: Colors.white,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.hub, size: 50, color: Colors.white),
+                  ),
+                ),
               ),
-            ),
-            Container(margin: EdgeInsets.only(top: 24), child: Text("OR")),
-            Container(
-              width: double.infinity,
-              margin: EdgeInsets.only(top: 24),
-              height: 50,
-              child: ElevatedButton(
-                onPressed: registerClicked,
-                child: Text("회원가입"),
+              const SizedBox(height: 40),
+              const Text(
+                "TEAMMATE",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 4.0, // 자간을 넓혀서 고급스럽게
+                  color: Colors.black,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              const Text(
+                "AI 기반 전문가 역량 분석 플랫폼",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w300,
+                  color: Colors.grey,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const Spacer(),
+
+              // === 버튼 영역 ===
+              // 로그인 버튼 (Filled Black)
+              SizedBox(
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: loginClicked,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero), // 직각 버튼
+                  ),
+                  child: const Text("로그인", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 회원가입 버튼 (Outlined)
+              SizedBox(
+                height: 56,
+                child: OutlinedButton(
+                  onPressed: registerClicked,
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.black, width: 1.5),
+                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                  ),
+                  child: const Text("회원가입", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black, letterSpacing: 1.5)),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
