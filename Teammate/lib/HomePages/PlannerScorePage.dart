@@ -11,158 +11,81 @@ class PlannerScorePage extends StatefulWidget {
 }
 
 class _PlannerScorePageState extends State<PlannerScorePage> {
-  XFile? _selectedFile;
-  bool _isDragging = false;
-  bool _isAnalyzing = false;
-  bool _showResult = false;
+  List<XFile> _files = [];
+  bool _analyzing = false;
+  Map<String, dynamic>? _result;
 
-  Future<void> _pickFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf']);
-    if (result != null) {
-      setState(() {
-        _selectedFile = result.files.single.xFile;
-        _showResult = false;
-      });
-    }
-  }
-
-  void _onDragDone(DropDoneDetails details) {
-    if (details.files.first.name.toLowerCase().endsWith('.pdf')) {
-      setState(() {
-        _selectedFile = details.files.first;
-        _showResult = false;
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("PDF 파일만 가능합니다.")));
-    }
+  Future<void> _pick() async {
+    final res = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf'], allowMultiple: true);
+    if (res != null) setState(() { _files = res.files.map((e) => e.xFile).toList(); _result = null; });
   }
 
   void _analyze() async {
-    if (_selectedFile == null) return;
-    print("[AI LOG] 기획서 분석 시작: ${_selectedFile!.name}");
-    setState(() => _isAnalyzing = true);
+    if (_files.isEmpty) return;
+    setState(() => _analyzing = true);
+
+    // [AI 연동] 1. PDF 전송
     await Future.delayed(const Duration(seconds: 2));
-    setState(() {
-      _isAnalyzing = false;
-      _showResult = true;
-    });
+
+    // [AI 연동] 2. JSON 응답
+    final mock = {"total_score": 88, "summary": "기획 의도가 명확하고 논리적 구조가 탄탄합니다."};
+
+    if (mounted) setState(() { _analyzing = false; _result = mock; });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-      ),
+      appBar: AppBar(backgroundColor: Colors.white, elevation: 0, iconTheme: const IconThemeData(color: Colors.black)),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(32.0),
+        padding: const EdgeInsets.all(32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("DOCUMENTATION", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.grey)),
+            const Text("DOCUMENTATION", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.5)),
             const SizedBox(height: 10),
-            const Text("기획서(PDF)\n논리 분석", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w300, color: Colors.black, height: 1.2)),
+            const Text("기획서(PDF)\n업로드", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w300)),
             const SizedBox(height: 40),
-
             DropTarget(
-              onDragDone: _onDragDone,
-              onDragEntered: (_) => setState(() => _isDragging = true),
-              onDragExited: (_) => setState(() => _isDragging = false),
+              onDragDone: (d) {
+                final pdfs = d.files.where((f) => f.name.toLowerCase().endsWith('.pdf')).toList();
+                if (pdfs.isNotEmpty) setState(() { _files = pdfs; _result = null; });
+              },
               child: GestureDetector(
-                onTap: _pickFile,
+                onTap: _pick,
                 child: Container(
                   width: double.infinity,
                   height: 300,
-                  decoration: BoxDecoration(
-                    color: _isDragging ? Colors.grey[50] : Colors.white,
-                    border: Border.all(color: Colors.grey[300]!, width: 1),
-                  ),
-                  child: _selectedFile == null ? _buildEmptyView() : _buildFileView(),
+                  decoration: BoxDecoration(border: Border.all(color: Colors.grey[300]!)),
+                  child: _files.isEmpty
+                      ? const Center(child: Text("PDF 파일을 드래그하세요", style: TextStyle(color: Colors.grey)))
+                      : ListView.builder(itemCount: _files.length, itemBuilder: (c, i) => ListTile(leading: const Icon(Icons.picture_as_pdf), title: Text(_files[i].name))),
                 ),
               ),
             ),
             const SizedBox(height: 30),
-
             SizedBox(
               width: double.infinity,
               height: 60,
               child: ElevatedButton(
-                onPressed: (_selectedFile == null || _isAnalyzing) ? null : _analyze,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                  disabledBackgroundColor: Colors.grey[200],
-                ),
-                child: _isAnalyzing
-                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 1))
-                    : const Text("논리 검증 시작", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 2.0)),
+                onPressed: (_files.isEmpty || _analyzing) ? null : _analyze,
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.black, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero)),
+                child: _analyzing ? const CircularProgressIndicator(color: Colors.white) : Text("논리 분석 (${_files.length})", style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
             ),
-
-            const SizedBox(height: 40),
-            if (_showResult) _buildResultModern(),
+            if (_result != null) ...[
+              const SizedBox(height: 40),
+              const Divider(color: Colors.black),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                const Text("LOGIC SCORE", style: TextStyle(fontWeight: FontWeight.bold)),
+                Text("${_result!['total_score']}", style: const TextStyle(fontSize: 60, fontWeight: FontWeight.w100)),
+              ]),
+              Text(_result!['summary'], style: const TextStyle(fontSize: 16, height: 1.6, color: Colors.grey)),
+            ]
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildEmptyView() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.description_outlined, size: 40, color: Colors.grey[300]),
-          const SizedBox(height: 16),
-          Text("UPLOAD PDF", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[400], letterSpacing: 2.0)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFileView() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.check_circle_outline, size: 40, color: Colors.black),
-          const SizedBox(height: 16),
-          Text(_selectedFile!.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), textAlign: TextAlign.center),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () => setState(() => _selectedFile = null),
-            child: const Text("파일 제거", style: TextStyle(color: Colors.grey, fontSize: 12, letterSpacing: 1.0)),
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildResultModern() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Divider(color: Colors.black, thickness: 1),
-        const SizedBox(height: 30),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            const Text("논리 점수", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-            Text("00", style: TextStyle(fontSize: 60, fontWeight: FontWeight.w100, color: Colors.grey[800], height: 1.0)),
-          ],
-        ),
-        const SizedBox(height: 20),
-        Text(
-          "AI 분석 결과: 기획 의도가 명확하고 논리적 흐름이 자연스럽습니다. MECE 구조를 잘 따르고 있습니다.",
-          style: TextStyle(fontSize: 16, color: Colors.grey[600], height: 1.6, fontWeight: FontWeight.w300),
-        ),
-      ],
     );
   }
 }

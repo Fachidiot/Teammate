@@ -48,20 +48,20 @@ class _RegisterDetailPageState extends State<RegisterDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(title: const Text('추가 정보', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)), backgroundColor: Colors.white, elevation: 0, iconTheme: const IconThemeData(color: Colors.black)),
+      backgroundColor: Colors.white,
+      appBar: AppBar(title: const Text('ADDITIONAL INFO', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.5)), backgroundColor: Colors.white, elevation: 0, iconTheme: const IconThemeData(color: Colors.black)),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 500),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(32.0),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text("마지막 단계입니다!", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 20),
+                  const Text("추가 정보 입력", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w300)),
+                  const SizedBox(height: 40),
 
                   TextFormField(
                     controller: _introController,
@@ -69,25 +69,20 @@ class _RegisterDetailPageState extends State<RegisterDetailPage> {
                     maxLines: 5,
                     validator: (v) => v!.isEmpty ? '자기소개를 입력해주세요' : null,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
 
-                  if (widget.userData['job'] == '개발자')
-                    TextFormField(controller: _githubController, decoration: _inputDecoration("Github 주소", Icons.link)),
+                  TextFormField(
+                      controller: _githubController,
+                      decoration: _inputDecoration("Github 주소 (선택)", Icons.link)
+                  ),
 
-                  // 디자인/기획자용 버튼 (UI만 존재)
-                  if (widget.userData['job'] != '개발자')
-                    SizedBox(
-                      height: 50,
-                      child: OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.upload_file), label: const Text("포트폴리오 업로드 (선택)")),
-                    ),
-
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 50),
                   SizedBox(
-                    height: 52,
+                    height: 56,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _registerClicked,
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('가입 완료', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero)),
+                      child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('가입 완료', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 2.0, color: Colors.white)),
                     ),
                   ),
                 ],
@@ -102,12 +97,10 @@ class _RegisterDetailPageState extends State<RegisterDetailPage> {
   InputDecoration _inputDecoration(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
-      prefixIcon: Icon(icon, color: Colors.grey[400]),
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3B82F6))),
+      labelStyle: const TextStyle(color: Colors.grey, fontSize: 12),
+      prefixIcon: Icon(icon, color: Colors.black, size: 20),
+      enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+      focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.black, width: 2)),
     );
   }
 }

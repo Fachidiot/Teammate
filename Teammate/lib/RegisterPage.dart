@@ -17,8 +17,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
   String? _selectedGender;
   final List<String> _genders = ['남성', '여성'];
-  String? _selectedPosition;
-  final List<String> _positions = ['개발자', '디자이너', '기획자'];
+
+  // 직군 선택 변수 삭제됨
 
   bool _isPasswordVisible = false;
 
@@ -30,7 +30,7 @@ class _RegisterPageState extends State<RegisterPage> {
         'name': _nameController.text,
         'birthdate': _birthdateController.text,
         'gender': _selectedGender,
-        'job': _selectedPosition,
+        'job': '미설정', // 기본값 처리 (나중에 프로필에서 수정 가능)
       };
       Navigator.push(context, MaterialPageRoute(builder: (context) => RegisterDetailPage(userData: userData)));
     }
@@ -45,7 +45,7 @@ class _RegisterPageState extends State<RegisterPage> {
       builder: (context, child) {
         return Theme(
           data: ThemeData.light().copyWith(
-            colorScheme: const ColorScheme.light(primary: Colors.black), // 달력 색상 블랙
+            colorScheme: const ColorScheme.light(primary: Colors.black),
           ),
           child: child!,
         );
@@ -118,13 +118,8 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  Row(
-                    children: [
-                      Expanded(child: _buildDropdown(_selectedGender, _genders, "성별", (v) => setState(() => _selectedGender = v))),
-                      const SizedBox(width: 20),
-                      Expanded(child: _buildDropdown(_selectedPosition, _positions, "직군", (v) => setState(() => _selectedPosition = v))),
-                    ],
-                  ),
+                  // 직군 선택 삭제됨, 성별만 남김
+                  _buildDropdown(_selectedGender, _genders, "성별", (v) => setState(() => _selectedGender = v)),
 
                   const SizedBox(height: 50),
                   SizedBox(
