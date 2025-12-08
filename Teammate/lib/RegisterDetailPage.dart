@@ -1,5 +1,11 @@
+import 'dart:io';
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 class RegisterDetailPage extends StatefulWidget {
@@ -16,6 +22,48 @@ class _RegisterDetailPageState extends State<RegisterDetailPage> {
   final _githubController = TextEditingController();
   final _introController = TextEditingController();
   bool _isLoading = false;
+
+  FilePickerResult? _pickedPortfolioFile;
+
+  Future<void> _pickPortfolio() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+    );
+    if (result != null) {
+      setState(() {
+        _pickedPortfolioFile = result;
+      });
+    }
+  }
+
+  // Simulate AI grading based on user data
+  Future<Map<String, dynamic>> _getAIGrade() async {
+    // In a real app, you would make an API call to your AI backend here.
+    // For now, we'll just generate a random grade.
+    await Future.delayed(const Duration(seconds: 1)); // Simulate network latency
+
+    final random = Random();
+    final score = 60 + random.nextInt(41); // Generates a score between 60 and 100
+
+    String grade;
+    if (score >= 95) {
+      grade = 'S';
+    } else if (score >= 90) {
+      grade = 'A';
+    } else if (score >= 80) {
+      grade = 'B';
+    } else if (score >= 70) {
+      grade = 'C';
+    } else {
+      grade = 'D';
+    }
+
+    return {
+      'grade': grade,
+      'score': score,
+    };
+  }
 
   void _registerClicked() async {
     if (!_formKey.currentState!.validate()) {
@@ -38,6 +86,34 @@ class _RegisterDetailPageState extends State<RegisterDetailPage> {
           'github': _githubController.text,
           'introduction': _introController.text,
         };
+
+        String? portfolioUrl;
+        if (_pickedPortfolioFile != null) {
+          final file = _pickedPortfolioFile!.files.first;
+          final ref = FirebaseStorage.instance
+              .ref('portfolios/${credential.user!.uid}/${file.name}');
+
+          UploadTask uploadTask;
+          if (kIsWeb) {
+            final fileBytes = file.bytes;
+            uploadTask = ref.putData(fileBytes!);
+          } else {
+            final filePath = file.path;
+            uploadTask = ref.putFile(File(filePath!));
+          }
+          final snapshot = await uploadTask;
+          portfolioUrl = await snapshot.ref.getDownloadURL();
+        }
+
+        if (portfolioUrl != null) {
+          newUser['portfolioUrl'] = portfolioUrl;
+        }
+
+        // Get AI Grade and add it to the user data
+        final aiGrade = await _getAIGrade();
+        newUser['grade'] = aiGrade['grade'];
+        newUser['score'] = aiGrade['score'];
+
         // Remove password before saving to firestore
         newUser.remove('password');
 
@@ -99,35 +175,30 @@ class _RegisterDetailPageState extends State<RegisterDetailPage> {
                   ),
                   const SizedBox(height: 20),
                   if (widget.userData['job'] == '개발자') ...[
-                    const Text("깃허브 링크를 적어놓을수 있는 textinput"),
+                    const Text("깃허브 닉네임을 적어주세요."),
                     const SizedBox(height: 8.0),
                     TextFormField(
                       controller: _githubController,
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
-                        hintText: 'https://github.com/your-username',
+                        hintText: 'your-username',
                       ),
                     ),
-                  ] else if (widget.userData['job'] == '디자이너') ...[
-                    const Text("작업물을 올릴수 있도록 이미지를 올리는 버튼"),
+                  ] else if (widget.userData['job'] == '디자이너' ||
+                      widget.userData['job'] == '기획자') ...[
+                    const Text("포트폴리오를 업로드해주세요 (이미지 또는 PDF).."),
                     const SizedBox(height: 8.0),
                     ElevatedButton.icon(
-                      onPressed: () {
-                        // TODO: Implement image picker
-                      },
+                      onPressed: _pickPortfolio,
                       icon: const Icon(Icons.upload_file),
-                      label: const Text('이미지 업로드'),
+                      label: const Text('파일 선택'),
                     ),
-                  ] else if (widget.userData['job'] == '기획자') ...[
-                    const Text(".pdf파일등의 기획안 파일을 올릴수 있는 버튼"),
-                    const SizedBox(height: 8.0),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        // TODO: Implement file picker for pdf
-                      },
-                      icon: const Icon(Icons.upload_file),
-                      label: const Text('PDF 업로드'),
-                    ),
+                    if (_pickedPortfolioFile != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(
+                            '선택된 파일: ${_pickedPortfolioFile!.files.first.name}'),
+                      ),
                   ],
                   const SizedBox(height: 32),
                   SizedBox(

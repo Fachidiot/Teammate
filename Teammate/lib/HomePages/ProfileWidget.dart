@@ -27,8 +27,6 @@ class _ProfileWidgetState extends State<ProfileWidget> {
   late TextEditingController _introController;
   late TextEditingController _githubController;
 
-  String? _selectedPosition;
-  final List<String> _positions = ['개발자', '디자이너', '기획자'];
   bool _receiveChats = true;
   bool _showProfile = true;
 
@@ -52,7 +50,6 @@ class _ProfileWidgetState extends State<ProfileWidget> {
     _nameController = TextEditingController(text: widget.user['name']);
     _introController = TextEditingController(text: widget.user['introduction']);
     _githubController = TextEditingController(text: widget.user['github']);
-    _selectedPosition = widget.user['job'];
     _receiveChats = widget.user['receiveChats'] ?? true;
     _showProfile = widget.user['showProfile'] ?? true;
     _pickedImage = null;
@@ -91,7 +88,6 @@ class _ProfileWidgetState extends State<ProfileWidget> {
         'name': _nameController.text,
         'introduction': _introController.text,
         'github': _githubController.text,
-        'job': _selectedPosition,
         'receiveChats': _receiveChats,
         'showProfile': _showProfile,
       };
@@ -223,6 +219,8 @@ class _ProfileWidgetState extends State<ProfileWidget> {
       children: [
         _buildProfileHeader(avatarRadius: 40),
         const SizedBox(height: 24),
+        _buildGradeAndScore(),
+        const SizedBox(height: 24),
         _buildStaticInfo(),
         const SizedBox(height: 24),
         _buildEditableContent(),
@@ -240,6 +238,8 @@ class _ProfileWidgetState extends State<ProfileWidget> {
             children: [
               _buildProfileHeader(avatarRadius: 50),
               const SizedBox(height: 24),
+              _buildGradeAndScore(),
+              const SizedBox(height: 24),
               _buildStaticInfo(),
             ],
           ),
@@ -255,8 +255,9 @@ class _ProfileWidgetState extends State<ProfileWidget> {
 
   ImageProvider? _getAvatarImage() {
     if (_pickedImage != null) {
-      // For web, the path is a URL. For mobile, it's a file path.
-      return kIsWeb ? NetworkImage(_pickedImage!.path) : FileImage(File(_pickedImage!.path));
+      return kIsWeb
+          ? NetworkImage(_pickedImage!.path)
+          : FileImage(File(_pickedImage!.path));
     }
     if (widget.user['photoURL'] != null && widget.user['photoURL'].isNotEmpty) {
       return NetworkImage(widget.user['photoURL']);
@@ -302,6 +303,41 @@ class _ProfileWidgetState extends State<ProfileWidget> {
     );
   }
 
+  Widget _buildGradeAndScore() {
+    final String grade = widget.user['grade'] ?? 'N/A';
+    final int score = widget.user['score'] ?? 0;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        Column(
+          children: [
+            Text('등급', style: Theme.of(context).textTheme.titleMedium),
+            Text(grade, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+          ],
+        ),
+        SizedBox(
+          width: 80,
+          height: 80,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              CircularProgressIndicator(
+                value: score / 100,
+                strokeWidth: 8,
+                backgroundColor: Colors.grey.shade300,
+                valueColor: const AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+              ),
+              Center(
+                child: Text('$score', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        )
+      ],
+    );
+  }
+
   Widget _buildStaticInfo() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -311,6 +347,8 @@ class _ProfileWidgetState extends State<ProfileWidget> {
         _buildDisplayField('Birthdate', widget.user['birthdate'] ?? '-'),
         const SizedBox(height: 16),
         _buildDisplayField('Gender', widget.user['gender'] ?? '-'),
+        const SizedBox(height: 16),
+        _buildDisplayField('포지션', widget.user['job'] ?? '-'),
       ],
     );
   }
@@ -319,9 +357,6 @@ class _ProfileWidgetState extends State<ProfileWidget> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _buildDropdown('나의 포지션', _selectedPosition, _positions,
-            _isEditing ? (val) => setState(() => _selectedPosition = val) : null),
-        const SizedBox(height: 16),
         if (_isEditing) ...[
           TextFormField(
             controller: _introController,
