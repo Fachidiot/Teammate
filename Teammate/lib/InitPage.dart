@@ -70,7 +70,6 @@ class _InitPageState extends State<InitPage> {
               ),
               const Spacer(),
 
-              // === 버튼 영역 ===
               // 로그인 버튼 (Filled Black)
               SizedBox(
                 height: 56,
