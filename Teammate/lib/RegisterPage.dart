@@ -10,6 +10,7 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
+
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
@@ -17,8 +18,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
   String? _selectedGender;
   final List<String> _genders = ['남성', '여성'];
-
-  // 직군 선택 변수 삭제됨
 
   bool _isPasswordVisible = false;
 
@@ -30,9 +29,20 @@ class _RegisterPageState extends State<RegisterPage> {
         'name': _nameController.text,
         'birthdate': _birthdateController.text,
         'gender': _selectedGender,
-        'job': '미설정', // 기본값 처리 (나중에 프로필에서 수정 가능)
+        'job': '미설정',
       };
-      Navigator.push(context, MaterialPageRoute(builder: (context) => RegisterDetailPage(userData: userData)));
+
+      Navigator.push(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => RegisterDetailPage(userData: userData),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            var tween = Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
+                .chain(CurveTween(curve: Curves.ease));
+            return SlideTransition(position: animation.drive(tween), child: child);
+          },
+        ),
+      );
     }
   }
 
@@ -79,47 +89,57 @@ class _RegisterPageState extends State<RegisterPage> {
                   const Text("기본 정보 입력", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w300)),
                   const SizedBox(height: 40),
 
-                  _buildMinimalInput(_emailController, "이메일", Icons.email_outlined),
+                  TextFormField(
+                    controller: _emailController,
+                    cursorColor: Colors.black,
+                    decoration: _inputDecoration("이메일", Icons.email_outlined),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return '이메일을 입력해주세요';
+                      if (!value.contains('@') || !value.contains('.')) return '올바른 이메일 형식이 아닙니다';
+                      return null;
+                    },
+                  ),
                   const SizedBox(height: 24),
 
                   TextFormField(
                     controller: _passwordController,
                     obscureText: !_isPasswordVisible,
-                    decoration: InputDecoration(
-                      labelText: "비밀번호",
-                      labelStyle: const TextStyle(color: Colors.grey, fontSize: 12),
-                      prefixIcon: const Icon(Icons.lock_outline, color: Colors.black, size: 20),
+                    cursorColor: Colors.black,
+                    decoration: _inputDecoration("비밀번호", Icons.lock_outline).copyWith(
                       suffixIcon: IconButton(
                         icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off, color: Colors.grey, size: 20),
                         onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
                       ),
-                      enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                      focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.black, width: 2)),
                     ),
-                    validator: (v) => v!.isEmpty ? '비밀번호를 입력해주세요' : null,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return '비밀번호를 입력해주세요';
+                      if (value.length < 6) return '비밀번호는 6자리 이상이어야 합니다';
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 24),
 
-                  _buildMinimalInput(_nameController, "이름", Icons.person_outline),
+                  _buildInput(_nameController, "이름", Icons.person_outline),
                   const SizedBox(height: 24),
 
                   TextFormField(
                     controller: _birthdateController,
                     readOnly: true,
                     onTap: () => _selectDate(context),
-                    decoration: const InputDecoration(
-                      labelText: "생년월일",
-                      labelStyle: TextStyle(color: Colors.grey, fontSize: 12),
-                      prefixIcon: Icon(Icons.calendar_today_outlined, color: Colors.black, size: 20),
-                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                      focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.black, width: 2)),
-                    ),
+                    cursorColor: Colors.black,
+                    decoration: _inputDecoration("생년월일", Icons.calendar_today),
                     validator: (v) => v!.isEmpty ? '생년월일을 선택해주세요' : null,
                   ),
                   const SizedBox(height: 24),
 
-                  // 직군 선택 삭제됨, 성별만 남김
-                  _buildDropdown(_selectedGender, _genders, "성별", (v) => setState(() => _selectedGender = v)),
+                  DropdownButtonFormField<String>(
+                    value: _selectedGender,
+                    dropdownColor: Colors.white,
+                    items: _genders.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                    onChanged: (v) => setState(() => _selectedGender = v),
+                    decoration: _inputDecoration("성별", Icons.wc),
+                    validator: (v) => v == null ? '성별을 선택해주세요' : null,
+                  ),
 
                   const SizedBox(height: 50),
                   SizedBox(
@@ -144,32 +164,22 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Widget _buildMinimalInput(TextEditingController c, String label, IconData icon) {
+  Widget _buildInput(TextEditingController c, String label, IconData icon) {
     return TextFormField(
       controller: c,
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.grey, fontSize: 12),
-        prefixIcon: Icon(icon, color: Colors.black, size: 20),
-        enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-        focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.black, width: 2)),
-      ),
+      cursorColor: Colors.black,
+      decoration: _inputDecoration(label, icon),
       validator: (v) => v!.isEmpty ? '$label을 입력해주세요' : null,
     );
   }
 
-  Widget _buildDropdown(String? val, List<String> items, String hint, Function(String?) changed) {
-    return DropdownButtonFormField<String>(
-      value: val,
-      items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
-      onChanged: changed,
-      decoration: InputDecoration(
-        labelText: hint,
-        labelStyle: const TextStyle(color: Colors.grey, fontSize: 12),
-        enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-        focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.black, width: 2)),
-      ),
-      validator: (v) => v == null ? '선택' : null,
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.grey, fontSize: 12),
+      prefixIcon: Icon(icon, color: Colors.black, size: 20),
+      enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+      focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.black, width: 2)),
     );
   }
 }

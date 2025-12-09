@@ -43,8 +43,19 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  Route _createRoute(Widget page) {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        var tween = Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
+            .chain(CurveTween(curve: Curves.ease));
+        return SlideTransition(position: animation.drive(tween), child: child);
+      },
+    );
+  }
+
   void registerClicked() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterPage()));
+    Navigator.push(context, _createRoute(const RegisterPage()));
   }
 
   void loginClicked() async {
@@ -80,18 +91,17 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // === 로고 영역 ===
                   Container(
                     width: 80, height: 80,
                     padding: const EdgeInsets.all(15),
                     decoration: BoxDecoration(
-                      color: Colors.black, // 블랙 로고 박스
-                      borderRadius: BorderRadius.circular(0), // 완전 직각 (모던함)
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(0),
                     ),
                     child: Image.asset(
                       "assets/images/g-logo.png",
                       fit: BoxFit.contain,
-                      color: Colors.white, // 로고를 흰색으로 (흑백 대비)
+                      color: Colors.white,
                       errorBuilder: (context, error, stackTrace) => const Icon(Icons.hub, size: 40, color: Colors.white),
                     ),
                   ),
@@ -101,14 +111,12 @@ class _LoginPageState extends State<LoginPage> {
                   const Text("AI 기반 역량 분석 플랫폼", style: TextStyle(fontSize: 12, color: Colors.grey, letterSpacing: 1.0)),
                   const SizedBox(height: 60),
 
-                  // === 입력창 (미니멀 스타일) ===
                   _buildMinimalTextField(_emailController, "이메일", Icons.alternate_email),
                   const SizedBox(height: 20),
                   _buildMinimalTextField(_passwordController, "비밀번호", Icons.lock_outline, isObscure: true),
 
                   const SizedBox(height: 20),
 
-                  // 체크박스 & 비밀번호 찾기
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -132,7 +140,6 @@ class _LoginPageState extends State<LoginPage> {
 
                   const SizedBox(height: 40),
 
-                  // === 버튼 (블랙 & 화이트) ===
                   SizedBox(
                     width: double.infinity,
                     height: 56,
@@ -142,7 +149,7 @@ class _LoginPageState extends State<LoginPage> {
                         backgroundColor: Colors.black,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero), // 직각 버튼
+                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                       ),
                       child: _isLoading
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 1))
@@ -179,7 +186,7 @@ class _LoginPageState extends State<LoginPage> {
         labelText: label,
         labelStyle: const TextStyle(color: Colors.grey, fontSize: 12),
         prefixIcon: Icon(icon, color: Colors.black, size: 20),
-        enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)), // 밑줄만 있음
+        enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
         focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.black, width: 2)),
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
       ),

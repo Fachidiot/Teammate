@@ -5,13 +5,18 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="73f950f7-d9b9-4e45-b61e-19d6d364e6bc" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/Teammate/lib/HomePages/FindDetailPage.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Teammate/lib/HomePages/FindWidget.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Teammate/android/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/android/app/src/main/AndroidManifest.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Teammate/lib/HomePages/AIScorePage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/HomePages/AIScorePage.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Teammate/lib/HomePages/DesignerScorePage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/HomePages/DesignerScorePage.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Teammate/lib/HomePages/DeveloperScorePage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/HomePages/DeveloperScorePage.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Teammate/lib/HomePages/HomePage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/HomePages/HomePage.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Teammate/lib/HomePages/PlannerScorePage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/HomePages/PlannerScorePage.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Teammate/lib/HomePages/ProfileWidget.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/HomePages/ProfileWidget.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Teammate/lib/HomePages/TeamDetailPage.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Teammate/lib/HomePages/TeamsWidget.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Teammate/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/main.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Teammate/lib/InitPage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/InitPage.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Teammate/lib/LoginPage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/LoginPage.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Teammate/lib/RegisterDetailPage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/RegisterDetailPage.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Teammate/lib/RegisterPage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/RegisterPage.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Teammate/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/pubspec.yaml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -51,7 +56,7 @@
     &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
     &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
     &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;park-ui&quot;,
     &quot;io.flutter.reload.alreadyRun&quot;: &quot;true&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
     &quot;project.structure.last.edited&quot;: &quot;Project&quot;,

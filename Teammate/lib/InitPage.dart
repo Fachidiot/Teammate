@@ -10,12 +10,24 @@ class InitPage extends StatefulWidget {
 }
 
 class _InitPageState extends State<InitPage> {
+
+  Route _createRoute(Widget page) {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        var tween = Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
+            .chain(CurveTween(curve: Curves.ease));
+        return SlideTransition(position: animation.drive(tween), child: child);
+      },
+    );
+  }
+
   void loginClicked() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginPage()));
+    Navigator.push(context, _createRoute(const LoginPage()));
   }
 
   void registerClicked() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterPage()));
+    Navigator.push(context, _createRoute(const RegisterPage()));
   }
 
   @override
@@ -29,13 +41,12 @@ class _InitPageState extends State<InitPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(),
-              // === 로고 및 타이틀 영역 ===
               Center(
                 child: Container(
                   width: 100, height: 100,
                   padding: const EdgeInsets.all(20),
                   decoration: const BoxDecoration(
-                    color: Colors.black, // 갤러리 느낌의 블랙 박스
+                    color: Colors.black,
                     shape: BoxShape.rectangle,
                   ),
                   child: Image.asset(
@@ -53,7 +64,7 @@ class _InitPageState extends State<InitPage> {
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: 4.0, // 자간을 넓혀서 고급스럽게
+                  letterSpacing: 4.0,
                   color: Colors.black,
                 ),
               ),
@@ -69,8 +80,6 @@ class _InitPageState extends State<InitPage> {
                 ),
               ),
               const Spacer(),
-
-              // 로그인 버튼 (Filled Black)
               SizedBox(
                 height: 56,
                 child: ElevatedButton(
@@ -79,14 +88,12 @@ class _InitPageState extends State<InitPage> {
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero), // 직각 버튼
+                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                   ),
                   child: const Text("로그인", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
                 ),
               ),
               const SizedBox(height: 16),
-
-              // 회원가입 버튼 (Outlined)
               SizedBox(
                 height: 56,
                 child: OutlinedButton(
