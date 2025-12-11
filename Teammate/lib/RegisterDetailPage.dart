@@ -1,13 +1,16 @@
 import 'dart:io';
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:cross_file/cross_file.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
 
 class RegisterDetailPage extends StatefulWidget {
   final Map<String, dynamic> userData;
+
   const RegisterDetailPage({super.key, required this.userData});
 
   @override
@@ -16,188 +19,194 @@ class RegisterDetailPage extends StatefulWidget {
 
 class _RegisterDetailPageState extends State<RegisterDetailPage> {
   final _formKey = GlobalKey<FormState>();
+  final _githubController = TextEditingController();
   final _introController = TextEditingController();
-
-  String? _selectedJob;
   bool _isLoading = false;
-  XFile? _portfolioImage;
-  XFile? _portfolioPdf;
 
-  Future<void> _pickImage() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.image);
-    if (result != null) setState(() => _portfolioImage = result.files.single.xFile);
-  }
+  FilePickerResult? _pickedPortfolioFile;
 
-  Future<void> _pickPdf() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf']);
-    if (result != null) setState(() => _portfolioPdf = result.files.single.xFile);
-  }
-
-  void _onRegisterBtnClicked() {
-    if (!_formKey.currentState!.validate()) return;
-
-    if (_selectedJob == null) {
-      _showJobNotSelectedDialog();
-    } else {
-      _processRegistration();
+  Future<void> _pickPortfolio() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+    );
+    if (result != null) {
+      setState(() {
+        _pickedPortfolioFile = result;
+      });
     }
   }
 
-  void _showJobNotSelectedDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Text("알림", style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text(
-          "직군이 선택되지 않았습니다.\n직군은 나중에 [프로필] 메뉴에서\n언제든지 설정할 수 있습니다.\n\n이대로 가입을 진행하시겠습니까?",
-          style: TextStyle(height: 1.5),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("취소", style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _processRegistration();
-            },
-            child: const Text("확인", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
+  // Simulate AI grading based on user data and job type
+  Future<Map<String, dynamic>> _getAIGrade(String job) async {
+    await Future.delayed(const Duration(seconds: 1)); // Simulate network latency
+    final random = Random();
+    final score = 60 + random.nextInt(41); // 60-100
+
+    switch (job) {
+      case '개발자':
+        return {
+          'code_score': score,
+          'code_comment': '생성된 코드의 품질이 전반적으로 우수하며, 최신 Flutter 관행을 잘 따르고 있습니다. 몇몇 부분에서 위젯 트리를 최적화할 수 있는 여지가 보입니다.',
+        };
+      case '디자이너':
+        return {
+          'design_score': score,
+          'design_comment': '제출된 포트폴리오의 색상 조합과 레이아웃 구성이 매우 인상적입니다. 사용자 경험에 대한 깊은 이해가 느껴집니다.',
+        };
+      case '기획자':
+        return {
+          'plan_score': score,
+          'plan_comment': '기획서의 논리 구조가 명확하고, 비즈니스 목표와 사용자 요구사항을 균형 있게 고려한 점이 돋보입니다.',
+        };
+      default:
+        return {};
+    }
   }
 
-  void _processRegistration() async {
-    setState(() => _isLoading = true);
+  void _registerClicked() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
       final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: widget.userData['email'],
-        password: widget.userData['password'],
+        email: widget.userData['email']!,
+        password: widget.userData['password']!,
       );
 
-      final newUser = {
-        ...widget.userData,
-        'uid': credential.user!.uid,
-        'job': _selectedJob ?? '미설정',
-        'introduction': _introController.text,
-        'github': '',
-        'code_score': 0,
-        'design_score': 0,
-        'plan_score': 0,
-      };
-      newUser.remove('password');
+      if (credential.user != null) {
+        final newUser = {
+          ...widget.userData,
+          'uid': credential.user!.uid,
+          'github': _githubController.text,
+          'introduction': _introController.text,
+        };
 
-      await FirebaseFirestore.instance.collection('users').doc(credential.user!.uid).set(newUser);
+        String? portfolioUrl;
+        if (_pickedPortfolioFile != null) {
+          final file = _pickedPortfolioFile!.files.first;
+          final ref = FirebaseStorage.instance
+              .ref('portfolios/${credential.user!.uid}/${file.name}');
 
-      if (mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
+          UploadTask uploadTask;
+          if (kIsWeb) {
+            final fileBytes = file.bytes;
+            uploadTask = ref.putData(fileBytes!);
+          } else {
+            final filePath = file.path;
+            uploadTask = ref.putFile(File(filePath!));
+          }
+          final snapshot = await uploadTask;
+          portfolioUrl = await snapshot.ref.getDownloadURL();
+        }
+
+        if (portfolioUrl != null) {
+          newUser['portfolio_url'] = portfolioUrl;
+        }
+
+        // Get AI Grade based on job and add it to the user data
+        final aiData = await _getAIGrade(newUser['job']);
+        newUser.addAll(aiData);
+
+        // Remove password before saving to firestore
+        newUser.remove('password');
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(credential.user!.uid)
+            .set(newUser);
+
+        if (mounted) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
       }
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('가입 실패. 다시 시도해주세요.')));
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message ?? '회원가입에 실패했습니다.')),
+        );
+      }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-        title: const Text("PROFILE SETUP", style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-        centerTitle: true,
+        title: const Text('추가 정보 입력'),
       ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 500),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+            padding: const EdgeInsets.all(16.0),
             child: Form(
               key: _formKey,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("당신의 직군은\n무엇인가요?", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, height: 1.2)),
-                  const SizedBox(height: 30),
-
-                  Row(
-                    children: [
-                      Expanded(child: _buildJobCard("개발자", Icons.code)),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildJobCard("디자이너", Icons.brush)),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildJobCard("기획자", Icons.lightbulb_outline)),
-                    ],
-                  ),
-                  const SizedBox(height: 40),
-
-                  const Text("포트폴리오 & 소개", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
-                  const SizedBox(height: 16),
-
-                  if (_selectedJob == '디자이너') ...[
-                    GestureDetector(
-                      onTap: _pickImage,
-                      child: Container(
-                        height: 150,
-                        width: double.infinity,
-                        decoration: BoxDecoration(border: Border.all(color: Colors.grey[300]!), color: Colors.grey[50]),
-                        child: _portfolioImage == null
-                            ? const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_photo_alternate_outlined, color: Colors.grey), SizedBox(height: 8), Text("이미지 업로드", style: TextStyle(color: Colors.grey, fontSize: 12))])
-                            : kIsWeb ? Image.network(_portfolioImage!.path, fit: BoxFit.cover) : Image.file(File(_portfolioImage!.path), fit: BoxFit.cover),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                  ] else if (_selectedJob == '기획자') ...[
-                    GestureDetector(
-                      onTap: _pickPdf,
-                      child: Container(
-                        height: 80,
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(border: Border.all(color: Colors.grey[300]!), color: Colors.grey[50]),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
-                            const SizedBox(width: 16),
-                            Expanded(child: Text(_portfolioPdf != null ? _portfolioPdf!.name : "기획서 업로드 (PDF)", style: const TextStyle(fontSize: 12))),
-                            if (_portfolioPdf == null) const Icon(Icons.upload, color: Colors.grey),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-
+                  const Text("간단한 자기소개를 적어주세요."),
+                  const SizedBox(height: 8.0),
                   TextFormField(
                     controller: _introController,
-                    cursorColor: Colors.black,
-                    decoration: _inputDecoration("간단한 자기소개", Icons.person_outline),
-                    maxLines: 3,
-                    validator: (v) => v!.isEmpty ? '소개를 입력해주세요' : null,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: '자기소개',
+                    ),
+                    maxLines: 5,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return '자기소개를 입력해주세요.';
+                      }
+                      return null;
+                    },
                   ),
-
-                  const SizedBox(height: 50),
-                  SizedBox(
-                    height: 60,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _onRegisterBtnClicked,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                  const SizedBox(height: 20),
+                  if (widget.userData['job'] == '개발자') ...[
+                    const Text("깃허브 닉네임을 적어주세요."),
+                    const SizedBox(height: 8.0),
+                    TextFormField(
+                      controller: _githubController,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        hintText: 'your-username',
                       ),
+                    ),
+                  ] else if (widget.userData['job'] == '디자이너' ||
+                      widget.userData['job'] == '기획자') ...[
+                    const Text("포트폴리오를 업로드해주세요 (이미지 또는 PDF).."),
+                    const SizedBox(height: 8.0),
+                    ElevatedButton.icon(
+                      onPressed: _pickPortfolio,
+                      icon: const Icon(Icons.upload_file),
+                      label: const Text('파일 선택'),
+                    ),
+                    if (_pickedPortfolioFile != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(
+                            '선택된 파일: ${_pickedPortfolioFile!.files.first.name}'),
+                      ),
+                  ],
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _registerClicked,
                       child: _isLoading
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 1))
-                          : const Text('가입 완료', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                          ? const CircularProgressIndicator()
+                          : const Text('회원가입'),
                     ),
                   ),
                 ],
@@ -206,53 +215,6 @@ class _RegisterDetailPageState extends State<RegisterDetailPage> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildJobCard(String label, IconData icon) {
-    final bool isSelected = _selectedJob == label;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          if (_selectedJob == label) {
-            _selectedJob = null;
-            _portfolioImage = null;
-            _portfolioPdf = null;
-          } else {
-            _selectedJob = label;
-            _portfolioImage = null;
-            _portfolioPdf = null;
-          }
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        height: 100,
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.black : Colors.white,
-          border: Border.all(color: isSelected ? Colors.black : Colors.grey[300]!),
-          borderRadius: BorderRadius.circular(0),
-          boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))] : [],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: isSelected ? Colors.white : Colors.grey, size: 28),
-            const SizedBox(height: 8),
-            Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.grey, fontWeight: FontWeight.bold, fontSize: 14)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: Colors.grey, fontSize: 12),
-      prefixIcon: Icon(icon, color: Colors.black, size: 20),
-      enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-      focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.black, width: 2)),
     );
   }
 }

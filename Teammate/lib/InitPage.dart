@@ -43,16 +43,15 @@ class _InitPageState extends State<InitPage> {
               const Spacer(),
               Center(
                 child: Container(
-                  width: 100, height: 100,
+                  width: 200, height: 200,
                   padding: const EdgeInsets.all(20),
                   decoration: const BoxDecoration(
-                    color: Colors.black,
+                    color: Colors.white,
                     shape: BoxShape.rectangle,
                   ),
                   child: Image.asset(
-                    "assets/images/g-logo.png",
-                    color: Colors.white,
-                    fit: BoxFit.contain,
+                    "assets/images/logo.png",
+                    fit: BoxFit.fill,
                     errorBuilder: (context, error, stackTrace) => const Icon(Icons.hub, size: 50, color: Colors.white),
                   ),
                 ),

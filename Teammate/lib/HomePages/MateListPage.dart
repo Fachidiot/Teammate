@@ -84,6 +84,38 @@ class _MateListPageState extends State<MateListPage> {
                   }).toList();
                 }
 
+                // Helper function to get the relevant score for a user
+                num? getScore(Map<String, dynamic> data) {
+                  switch (data['job']) {
+                    case '개발자':
+                      return data['code_score'] as num?;
+                    case '디자이너':
+                      return data['design_score'] as num?;
+                    case '기획자':
+                      return data['plan_score'] as num?;
+                    default:
+                      return null;
+                  }
+                }
+
+                docs.sort((a, b) {
+                  final dataA = a.data() as Map<String, dynamic>;
+                  final dataB = b.data() as Map<String, dynamic>;
+
+                  final scoreA = getScore(dataA);
+                  final scoreB = getScore(dataB);
+
+                  if (scoreA != null && scoreB != null) {
+                    return scoreB.compareTo(scoreA); // Descending order
+                  } else if (scoreA != null) {
+                    return -1; // A has score, B doesn't. A comes first.
+                  } else if (scoreB != null) {
+                    return 1;  // B has score, A doesn't. B comes first.
+                  } else {
+                    return 0;  // Both have no score. Keep original order.
+                  }
+                });
+
                 if (docs.isEmpty) return const Center(child: Text("목록이 비어있습니다."));
 
                 return ListView.separated(
@@ -113,7 +145,7 @@ class _MateListPageState extends State<MateListPage> {
         // 카드 전체 클릭 시 프로필로 이동
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => ProfileWidget(user: data, isReadOnly: true)),
+          MaterialPageRoute(builder: (context) => ProfileWidget(user: data, onProfileUpdated: (updatedUser) {})),
         );
       },
       child: Container(
@@ -143,10 +175,13 @@ class _MateListPageState extends State<MateListPage> {
               ),
             ),
 
-            // 점수 뱃지 (있으면 표시)
-            if (job == '개발자' && data['code_score'] != null) _buildScoreBadge(data['code_score'], "CODE")
-            else if (job == '디자이너' && data['design_score'] != null) _buildScoreBadge(data['design_score'], "ART")
-            else if (job == '기획자' && data['plan_score'] != null) _buildScoreBadge(data['plan_score'], "LOGIC"),
+            // AI Grade/Score Badge
+            if (data['job'] == "개발자" && data['code_score'] != null)
+              _buildScoreBadge(data['code_score'])
+            else if (data['job'] == "디자이너" && data['design_score'] != null)
+              _buildScoreBadge(data['design_score'])
+            else if (data['job'] == "기획자" &&data['plan_score'] != null)
+              _buildScoreBadge(data['plan_score']),
 
             const SizedBox(width: 16),
             const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
@@ -156,12 +191,13 @@ class _MateListPageState extends State<MateListPage> {
     );
   }
 
-  Widget _buildScoreBadge(dynamic score, String label) {
+  Widget _buildScoreBadge(dynamic score) {
+    var grade = score >= 80 ? "A" : (score >= 60 ? "B" : (score >= 40 ? "C" : "D"));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Text("$score", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+        Text(grade, style: const TextStyle(fontSize: 15, color: Colors.blueAccent, fontWeight: FontWeight.bold)),
       ],
     );
   }
