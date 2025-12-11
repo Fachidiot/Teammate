@@ -5,19 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="73f950f7-d9b9-4e45-b61e-19d6d364e6bc" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Teammate/android/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/android/app/src/main/AndroidManifest.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Teammate/lib/HomePages/AIScorePage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/HomePages/AIScorePage.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Teammate/lib/HomePages/DesignerScorePage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/HomePages/DesignerScorePage.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Teammate/lib/HomePages/DeveloperScorePage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/HomePages/DeveloperScorePage.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Teammate/lib/HomePages/HomePage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/HomePages/HomePage.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Teammate/lib/HomePages/PlannerScorePage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/HomePages/PlannerScorePage.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Teammate/lib/HomePages/ProfileWidget.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/HomePages/ProfileWidget.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Teammate/lib/InitPage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/InitPage.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Teammate/lib/LoginPage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/LoginPage.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Teammate/lib/RegisterDetailPage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/RegisterDetailPage.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Teammate/lib/RegisterPage.dart" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/lib/RegisterPage.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Teammate/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/Teammate/pubspec.yaml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
