@@ -192,12 +192,38 @@ class _MateListPageState extends State<MateListPage> {
   }
 
   Widget _buildScoreBadge(dynamic score) {
-    var grade = score >= 80 ? "A" : (score >= 60 ? "B" : (score >= 40 ? "C" : "D"));
+    String grade;
+    Color gradeColor;
+
+    if (score >= 95) {
+      grade = 'S';
+      gradeColor = Colors.purpleAccent;
+    } else if (score >= 90) {
+      grade = 'A';
+      gradeColor = Colors.lightBlue;
+    } else if (score >= 80) {
+      grade = 'B';
+      gradeColor = Colors.green;
+    } else if (score >= 70) {
+      grade = 'C';
+      gradeColor = Colors.orange;
+    } else {
+      grade = 'D';
+      gradeColor = Colors.pink;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Text("$score", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-        Text(grade, style: const TextStyle(fontSize: 15, color: Colors.blueAccent, fontWeight: FontWeight.bold)),
+        Text(
+          grade,
+          style: TextStyle(
+            fontSize: 15,
+            color: gradeColor,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
